@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.stream.Stream;
 
 import javax.xml.bind.JAXBException;
 
@@ -53,7 +54,7 @@ public class MultiConverterCLI {
             LOGGER.info("Please specify the input and the output directory:");
             LOGGER.info("  MultiConverterCLI convert {source abbyy file} {target directory}");
             LOGGER.info("  MultiConverterCLI directory {source directory} {target directory}");
-            LOGGER.info("  MultiConverterCLI jvb {source directory}");
+            LOGGER.info("  MultiConverterCLI matching {source directory} {matching folder name} {target folder name}");
             return;
         }
 
@@ -65,25 +66,37 @@ public class MultiConverterCLI {
         } else if (command.equals("directory")) {
             LOGGER.info("Start converting abbyy files...");
             convertDirectory(Paths.get(args[1]), Paths.get(args[2]));
-        } else if (command.equals("jvb")) {
-            convertJVB(args[1]);
+        } else if (command.equals("matching")) {
+            convertMatching(Paths.get(args[1]), args[2], args[3]);
         } else {
             LOGGER.info("Unknown command " + command);
         }
     }
 
     /**
-     * jvb /data/temp/mnt/images/OCRbearbInnsbruck_2/1914
+     * Runs through all sub directories of sourceDirectoryPath and tries to find 
+     * matching folders. When a folders matches (the name is equal the matching
+     * folder variable), all *.xml files of this folder will be converted
+     * and stored under the new folder.
      * 
-     * @param sourceDirectory
-     * @throws IOException
+     * @param sourceDirectoryPath path where to start converting
+     * @param matchingFolder folder name where the *.xml files lies within
+     * @param newFolder name of the folder which will be created for converted *.xml
+     * The folder is always a sibling of the matching folder
+     * 
+     * @throws IOException some storing went wrong
      */
-    private static void convertJVB(String sourceDirectory) throws IOException {
-        Files.list(Paths.get(sourceDirectory)).filter(p -> Files.isDirectory(p)).flatMap(dir -> {
-            return Unthrow.wrap(() -> Files.list(dir.resolve("ocr")));
-        }).forEach(sourcePath -> {
-            Unthrow.wrapProc(() -> convert(sourcePath, sourcePath.getParent().getParent().resolve("mcralto")));
-        });
+    private static void convertMatching(Path sourceDirectoryPath, String matchingFolder, String newFolder)
+        throws IOException {
+        try (Stream<Path> stream = Files.walk(sourceDirectoryPath)) {
+            stream.filter(p -> {
+                return Files.isDirectory(p) && Files.exists(p.resolve(matchingFolder));
+            }).flatMap(baseDirectory -> {
+                return Unthrow.wrap(() -> Files.list(baseDirectory.resolve(matchingFolder)));
+            }).forEach(sourcePath -> {
+                Unthrow.wrapProc(() -> convert(sourcePath, sourcePath.getParent().getParent().resolve(newFolder)));
+            });
+        }
     }
 
     /**
