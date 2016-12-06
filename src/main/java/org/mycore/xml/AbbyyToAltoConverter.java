@@ -114,7 +114,7 @@ public class AbbyyToAltoConverter {
                 pageSpace.getContent().add(illustration);
             } else if (blockType.equals("Table")) {
                 ComposedBlockType tableBlock = new ComposedBlockType();
-                tableBlock.setType("table");
+                tableBlock.setTYPE("table");
                 blockRect.applyOnBlock(tableBlock);
                 abbyyBlock.getRow().stream().flatMap(row -> row.getCell().stream())
                     .flatMap(cell -> cell.getText().stream()).flatMap(text -> text.getPar().stream())
