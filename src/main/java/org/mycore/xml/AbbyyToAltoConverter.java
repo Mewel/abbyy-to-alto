@@ -274,6 +274,11 @@ public class AbbyyToAltoConverter {
                     LOGGER.warn("Error while getting word confidence (WC) of " + word.getValue());
                     string.setWC(0f);
                 }
+                try {
+                    string.setCC(word.getCC());
+                } catch(Exception exc) {
+                    LOGGER.warn("Error while getting character confidence (CC) of " + word.getValue());
+                }
                 string.getSTYLEREFS().add(style);
                 wordRect.applyOnString(string);
                 altoLine.getStringAndSP().add(string);
@@ -397,6 +402,38 @@ public class AbbyyToAltoConverter {
          * @return the word confidence.
          */
         public Float getWC() {
+            boolean dictionaryCheckAvailable = !charParams.stream()
+                                                          .map(CharParamsType::isWordFromDictionary)
+                                                          .filter(dic -> dic == null)
+                                                          .findAny()
+                                                          .isPresent();
+            if (dictionaryCheckAvailable) {
+                return (float) charParams.stream().map(CharParamsType::isWordFromDictionary).mapToDouble(b -> {
+                    return b ? 1d : 0d;
+                }).average().orElse(0);
+            }
+            return getAverageCC();
+        }
+
+        /**
+         * Confidence level of each character in that string. A list of numbers, one number between 0 (sure)
+         * and 9 (unsure) for each character.
+         * 
+         * @return the character confidence as list if integers separated by spaces
+         */
+        public String getCC() {
+            return charParams.stream().map(CharParamsType::getCharConfidence).map(BigInteger::intValue).map(cc -> {
+                cc = cc == -1 ? 0 : cc;
+                return String.valueOf((9 - Math.round((cc / 100f) * 9f)));
+            }).collect(Collectors.joining(" "));
+        }
+
+        /**
+         * Gets the average charConfidence of the word. 
+         * 
+         * @return the average CC
+         */
+        public Float getAverageCC() {
             Double wc = charParams.stream()
                                   .map(CharParamsType::getCharConfidence)
                                   .mapToInt(BigInteger::intValue)
@@ -406,7 +443,7 @@ public class AbbyyToAltoConverter {
             wc = wc / 100;
             return wc.floatValue();
         }
-
+        
         /**
          * If this word is actually just a space character. This is used for convenience.
          * 
