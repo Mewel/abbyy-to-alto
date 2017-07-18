@@ -91,6 +91,7 @@ public class AbbyyToAltoConverter {
         AtomicInteger paragraphCount = new AtomicInteger(0);
         AtomicInteger illustrationCount = new AtomicInteger(0);
         AtomicInteger graphicalElementCount = new AtomicInteger(0);
+        AtomicInteger tableElementCount  = new AtomicInteger(0);
 
         blockStream.forEach(abbyyBlock -> {
             String blockType = abbyyBlock.getBlockType();
@@ -127,6 +128,7 @@ public class AbbyyToAltoConverter {
                           .forEach(abbyyParagraph -> {
                               handleParagraph(alto, tableBlock, abbyyParagraph, paragraphCount);
                           });
+                tableBlock.setID("Table_" + tableElementCount.incrementAndGet());
                 pageSpace.getContent().add(tableBlock);
             } else if (blockType.equals("Separator") || blockType.equals("SeparatorsBox")) {
                 GraphicalElementType graphicalSeparator = new GraphicalElementType();
