@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -37,12 +38,14 @@ import org.mycore.xml.abbyy.v10.CharParamsType;
 import org.mycore.xml.abbyy.v10.Document;
 import org.mycore.xml.abbyy.v10.FormattingType;
 import org.mycore.xml.abbyy.v10.LineType;
+import org.mycore.xml.abbyy.v10.ParagraphAlignment;
 import org.mycore.xml.abbyy.v10.ParagraphType;
 import org.mycore.xml.alto.v2.Alto;
 import org.mycore.xml.alto.v2.Alto.Description;
 import org.mycore.xml.alto.v2.Alto.Layout;
 import org.mycore.xml.alto.v2.Alto.Layout.Page;
 import org.mycore.xml.alto.v2.Alto.Styles;
+import org.mycore.xml.alto.v2.Alto.Styles.ParagraphStyle;
 import org.mycore.xml.alto.v2.Alto.Styles.TextStyle;
 import org.mycore.xml.alto.v2.ComposedBlockType;
 import org.mycore.xml.alto.v2.GraphicalElementType;
@@ -116,11 +119,14 @@ public class AbbyyToAltoConverter {
                 ComposedBlockType tableBlock = new ComposedBlockType();
                 tableBlock.setTYPE("table");
                 blockRect.applyOnBlock(tableBlock);
-                abbyyBlock.getRow().stream().flatMap(row -> row.getCell().stream())
-                    .flatMap(cell -> cell.getText().stream()).flatMap(text -> text.getPar().stream())
-                    .forEach(abbyyParagraph -> {
-                        handleParagraph(alto, tableBlock, abbyyParagraph, paragraphCount);
-                    });
+                abbyyBlock.getRow()
+                          .stream()
+                          .flatMap(row -> row.getCell().stream())
+                          .flatMap(cell -> cell.getText().stream())
+                          .flatMap(text -> text.getPar().stream())
+                          .forEach(abbyyParagraph -> {
+                              handleParagraph(alto, tableBlock, abbyyParagraph, paragraphCount);
+                          });
                 pageSpace.getContent().add(tableBlock);
             } else if (blockType.equals("Separator") || blockType.equals("SeparatorsBox")) {
                 GraphicalElementType graphicalSeparator = new GraphicalElementType();
@@ -134,6 +140,7 @@ public class AbbyyToAltoConverter {
 
         pageRect.applyOnPageSpace(pageSpace);
         optimizeFonts(pageSpace);
+        updateParagraphStyles(alto.getStyles().getParagraphStyle());
         return alto;
     }
 
@@ -185,6 +192,10 @@ public class AbbyyToAltoConverter {
         }
         textBlockRect.applyOnBlock(paragraphBlock);
         paragraphBlock.setID("Paragraph_" + paragraphCount.incrementAndGet());
+        ParagraphStyle paragraphStyle = getParagraphStyle(alto.getStyles(), abbyyParagraph);
+        if(paragraphStyle != null) {
+            paragraphBlock.getSTYLEREFS().add(paragraphStyle);
+        }
         composedBlock.getContent().add(paragraphBlock);
     }
 
@@ -231,8 +242,12 @@ public class AbbyyToAltoConverter {
         List<Word> words = new ArrayList<>();
         AtomicReference<Word> wordRef = new AtomicReference<>();
         charParamsStream.forEach(charParam -> {
-            String value = charParam.getContent().stream().filter(c -> c instanceof String).map(String.class::cast)
-                .collect(Collectors.joining()).trim();
+            String value = charParam.getContent()
+                                    .stream()
+                                    .filter(c -> c instanceof String)
+                                    .map(String.class::cast)
+                                    .collect(Collectors.joining())
+                                    .trim();
             if (value.isEmpty()) {
                 Word space = new Word(true);
                 space.addCharParam(charParam);
@@ -276,7 +291,7 @@ public class AbbyyToAltoConverter {
                 }
                 try {
                     string.setCC(word.getCC());
-                } catch(Exception exc) {
+                } catch (Exception exc) {
                     LOGGER.warn("Error while getting character confidence (CC) of " + word.getValue());
                 }
                 string.getSTYLEREFS().add(style);
@@ -325,7 +340,8 @@ public class AbbyyToAltoConverter {
         TextStyle textStyle = textStyles.stream().filter(ts -> {
             boolean equalFFamily = fontFamily.equals(ts.getFONTFAMILY());
             boolean equalFSize = fontSize.equals(ts.getFONTSIZE());
-            boolean equalFStyles = (fontStyles.isEmpty() && ts.getFONTSTYLE() == null) || (fontStyles.equals(ts.getFONTSTYLE()));
+            boolean equalFStyles = (fontStyles.isEmpty() && ts.getFONTSTYLE() == null)
+                || (fontStyles.equals(ts.getFONTSTYLE()));
             return equalFFamily && equalFSize && equalFStyles;
         }).findFirst().orElse(null);
         if (textStyle == null) {
@@ -339,6 +355,71 @@ public class AbbyyToAltoConverter {
             textStyles.add(textStyle);
         }
         return textStyle;
+    }
+
+    /**
+     * <p>Returns a new or existing paragraph style of a given abbbyy par element.
+     * If the paragraph style didn't exists yet, this method will add it to
+     * the style element too.</p>
+     * <p>If the par element doesn't has any attributes, this method will return
+     * null</p>
+     * 
+     * @param styles the existing styles
+     * @param paragraph the abbyy par element
+     * @return a alto paragraph style
+     */
+    private ParagraphStyle getParagraphStyle(Styles styles, ParagraphType paragraph) {
+        ParagraphStyle paragraphStyle = createParagraphStyle(paragraph);
+        if(paragraphStyle == null) {
+            return null;
+        }
+        List<ParagraphStyle> paragraphStyles = styles.getParagraphStyle();
+        return paragraphStyles.stream().filter(ps -> {
+            return Objects.equals(ps.getALIGN(), paragraphStyle.getALIGN())
+                && Objects.equals(ps.getLEFT(), paragraphStyle.getLEFT())
+                && Objects.equals(ps.getRIGHT(), paragraphStyle.getRIGHT())
+                && Objects.equals(ps.getLINESPACE(), paragraphStyle.getLINESPACE())
+                && Objects.equals(ps.getFIRSTLINE(), paragraphStyle.getFIRSTLINE());
+        }).findFirst().orElseGet(() -> {
+            styles.getParagraphStyle().add(paragraphStyle);
+            return paragraphStyle;
+        });
+    }
+
+    /**
+     * Creates a new alto paragraph style based on the given attributes
+     * of the abbyy par element. The ID of the ParagraphStyle is null!
+     * 
+     * @param paragraph the abbyy par element
+     * @return a new alto paragraph style
+     */
+    private ParagraphStyle createParagraphStyle(ParagraphType paragraph) {
+        ParagraphStyle ps = new ParagraphStyle();
+        ParagraphAlignment align = paragraph.getAlign();
+        boolean hasAttributes = false;
+        if (!align.equals(ParagraphAlignment.LEFT)) {
+            String alignValue = align.name().toLowerCase();
+            alignValue = alignValue.equals("justified") ? "block" : alignValue;
+            ps.setALIGN(alignValue.substring(0, 1).toUpperCase() + alignValue.substring(1));
+            hasAttributes = true;
+        }
+        if (!paragraph.getLeftIndent().equals(new BigInteger("0"))) {
+            ps.setLEFT(paragraph.getLeftIndent().floatValue());
+            hasAttributes = true;
+        }
+        if (!paragraph.getRightIndent().equals(new BigInteger("0"))) {
+            ps.setRIGHT(paragraph.getRightIndent().floatValue());
+            hasAttributes = true;
+        }
+        if (!paragraph.getLineSpacing().equals(new BigInteger("0"))) {
+            ps.setLINESPACE(paragraph.getLineSpacing().floatValue());
+            hasAttributes = true;
+        }
+        if (!paragraph.getStartIndent().equals(new BigInteger("0"))) {
+            ps.setFIRSTLINE(paragraph.getStartIndent().floatValue());
+            hasAttributes = true;
+        }
+        return hasAttributes ? ps : null;
     }
 
     /**
@@ -371,14 +452,26 @@ public class AbbyyToAltoConverter {
          */
         public Rectangle getRectangle() {
             Rectangle rect = new Rectangle();
-            rect.left = charParams.stream().map(CharParamsType::getL).min(new BigIntegerComparator())
-                .orElse(BigInteger.ZERO).intValue();
-            rect.top = charParams.stream().map(CharParamsType::getT).min(new BigIntegerComparator())
-                .orElse(BigInteger.ZERO).intValue();
-            rect.right = charParams.stream().map(CharParamsType::getR).max(new BigIntegerComparator())
-                .orElse(BigInteger.ZERO).intValue();
-            rect.bottom = charParams.stream().map(CharParamsType::getB).max(new BigIntegerComparator())
-                .orElse(BigInteger.ZERO).intValue();
+            rect.left = charParams.stream()
+                                  .map(CharParamsType::getL)
+                                  .min(new BigIntegerComparator())
+                                  .orElse(BigInteger.ZERO)
+                                  .intValue();
+            rect.top = charParams.stream()
+                                 .map(CharParamsType::getT)
+                                 .min(new BigIntegerComparator())
+                                 .orElse(BigInteger.ZERO)
+                                 .intValue();
+            rect.right = charParams.stream()
+                                   .map(CharParamsType::getR)
+                                   .max(new BigIntegerComparator())
+                                   .orElse(BigInteger.ZERO)
+                                   .intValue();
+            rect.bottom = charParams.stream()
+                                    .map(CharParamsType::getB)
+                                    .max(new BigIntegerComparator())
+                                    .orElse(BigInteger.ZERO)
+                                    .intValue();
             return rect;
         }
 
@@ -443,7 +536,7 @@ public class AbbyyToAltoConverter {
             wc = wc / 100;
             return wc.floatValue();
         }
-        
+
         /**
          * If this word is actually just a space character. This is used for convenience.
          * 
@@ -650,4 +743,15 @@ public class AbbyyToAltoConverter {
         });
     }
 
+    /**
+     * Add a ID attribute to each paragraph style, its required.
+     * 
+     * @param styles the paragraph styles
+     */
+    private void updateParagraphStyles(List<ParagraphStyle> styles) {
+        for (int i = 0; i < styles.size(); i++) {
+            styles.get(i).setID("paragraph" + i);
+        }
+    }
+    
 }

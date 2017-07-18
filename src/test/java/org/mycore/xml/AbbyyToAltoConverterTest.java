@@ -18,15 +18,16 @@ public class AbbyyToAltoConverterTest {
         InputStream inputStream = AbbyyToAltoConverter.class.getResourceAsStream("/abbyy.xml");
         Document document = JAXBUtil.unmarshalAbbyyDocument(inputStream);
         Alto alto = new AbbyyToAltoConverter().convert(document);
-
-        assertNotNull(alto);
-        assertNotNull(alto.getStyles());
-        assertNotNull(alto.getDescription());
-        assertNotNull(alto.getLayout());
-        assertEquals(1, alto.getLayout().getPage().size());
+        assertNotNull("alto object should not be null", alto);
+        assertNotNull("alto Styles element should not be null", alto.getStyles());
+        assertEquals("there should be '14' TextStyle elements", 14, alto.getStyles().getTextStyle().size());
+        assertEquals("there should be '30' ParagraphStyle elements", 30, alto.getStyles().getParagraphStyle().size());
+        assertNotNull("alto description should not be null", alto.getDescription());
+        assertNotNull("alto layout should not be null", alto.getLayout());
+        assertEquals("there should be exactly one page", 1, alto.getLayout().getPage().size());
         PageSpaceType pageSpace = alto.getLayout().getPage().get(0).getPrintSpace();
-        assertNotNull(pageSpace);
-        assertNotEquals(0, pageSpace.getContent().size());
+        assertNotNull("PrintSpace should not be null", pageSpace);
+        assertNotEquals("PrintSpace should have content", 0, pageSpace.getContent().size());
         System.out.println(JAXBUtil.marshalAltoToString(alto));
     }
 
