@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.InputStream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 import org.mycore.xml.abbyy.v10.Document;
 import org.mycore.xml.alto.v2.Alto;
@@ -13,22 +15,53 @@ import org.mycore.xml.alto.v2.PageSpaceType;
 
 public class AbbyyToAltoConverterTest {
 
+    private static Logger LOGGER = LogManager.getLogger(AbbyyToAltoConverterTest.class);
+
+    /**
+     * Use the abbyy.xml example document
+     * 
+     * @throws Exception something went wrong
+     */
     @Test
     public void convert() throws Exception {
-        InputStream inputStream = AbbyyToAltoConverter.class.getResourceAsStream("/abbyy.xml");
-        Document document = JAXBUtil.unmarshalAbbyyDocument(inputStream);
-        Alto alto = new AbbyyToAltoConverter().convert(document);
-        assertNotNull("alto object should not be null", alto);
-        assertNotNull("alto Styles element should not be null", alto.getStyles());
-        assertEquals("there should be '14' TextStyle elements", 14, alto.getStyles().getTextStyle().size());
-        assertEquals("there should be '30' ParagraphStyle elements", 30, alto.getStyles().getParagraphStyle().size());
-        assertNotNull("alto description should not be null", alto.getDescription());
-        assertNotNull("alto layout should not be null", alto.getLayout());
-        assertEquals("there should be exactly one page", 1, alto.getLayout().getPage().size());
-        PageSpaceType pageSpace = alto.getLayout().getPage().get(0).getPrintSpace();
-        assertNotNull("PrintSpace should not be null", pageSpace);
-        assertNotEquals("PrintSpace should have content", 0, pageSpace.getContent().size());
-        System.out.println(JAXBUtil.marshalAltoToString(alto));
+        try (InputStream inputStream = AbbyyToAltoConverter.class.getResourceAsStream("/abbyy.xml")) {
+            Document document = JAXBUtil.unmarshalAbbyyDocument(inputStream);
+            Alto alto = new AbbyyToAltoConverter().convert(document);
+            assertNotNull("alto object should not be null", alto);
+            assertNotNull("alto Styles element should not be null", alto.getStyles());
+            assertEquals("there should be '14' TextStyle elements", 14, alto.getStyles().getTextStyle().size());
+            assertEquals("there should be '30' ParagraphStyle elements", 30,
+                alto.getStyles().getParagraphStyle().size());
+            assertNotNull("alto description should not be null", alto.getDescription());
+            assertNotNull("alto layout should not be null", alto.getLayout());
+            assertEquals("there should be exactly one page", 1, alto.getLayout().getPage().size());
+            PageSpaceType pageSpace = alto.getLayout().getPage().get(0).getPrintSpace();
+            assertNotNull("PrintSpace should not be null", pageSpace);
+            assertNotEquals("PrintSpace should have content", 0, pageSpace.getContent().size());
+            LOGGER.info(JAXBUtil.marshalAltoToString(alto));
+        }
+    }
+
+    /**
+     * Use oldGerman.xml example document
+     * 
+     * @throws Exception something went wrong
+     */
+    @Test
+    public void convertOldGerman() throws Exception {
+        // convert
+        try (InputStream inputStream = AbbyyToAltoConverter.class.getResourceAsStream("/oldGerman.xml")) {
+            Document document = JAXBUtil.unmarshalAbbyyDocument(inputStream);
+            AbbyyToAltoConverter converter = new AbbyyToAltoConverter();
+            converter.setDefaultFontFamily("Times");
+            converter.setDefaultFontSize(10f);
+            converter.setEnableConfidence(false);
+            Alto alto = converter.convert(document);
+            assertNotNull("alto object should not be null", alto);
+            assertEquals("there should be 1 TextStyle element", 1, alto.getStyles().getTextStyle().size());
+            assertEquals("there should be exactly one page", 1, alto.getLayout().getPage().size());
+            LOGGER.info(JAXBUtil.marshalAltoToString(alto));
+        }
     }
 
 }

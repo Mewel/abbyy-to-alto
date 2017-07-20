@@ -66,11 +66,17 @@ public class AbbyyToAltoConverter {
 
     private static Logger LOGGER = LogManager.getLogger(AbbyyToAltoConverter.class);
 
+    private String defaultFontFamily = null;
+
+    private Float defaultFontSize = null;
+
+    private boolean enableConfidence = true;
+
     /**
      * Converts the given abbyy document to an ALTO one.
      * 
-     * @param abbyyXML the abbyy document
-     * @return ALTO xml
+     * @param abbyyDocument the abbyy document
+     * @return alto xml as POJO
      */
     public Alto convert(Document abbyyDocument) {
         Alto alto = buildAlto();
@@ -91,7 +97,7 @@ public class AbbyyToAltoConverter {
         AtomicInteger paragraphCount = new AtomicInteger(0);
         AtomicInteger illustrationCount = new AtomicInteger(0);
         AtomicInteger graphicalElementCount = new AtomicInteger(0);
-        AtomicInteger tableElementCount  = new AtomicInteger(0);
+        AtomicInteger tableElementCount = new AtomicInteger(0);
 
         blockStream.forEach(abbyyBlock -> {
             String blockType = abbyyBlock.getBlockType();
@@ -195,7 +201,7 @@ public class AbbyyToAltoConverter {
         textBlockRect.applyOnBlock(paragraphBlock);
         paragraphBlock.setID("Paragraph_" + paragraphCount.incrementAndGet());
         ParagraphStyle paragraphStyle = getParagraphStyle(alto.getStyles(), abbyyParagraph);
-        if(paragraphStyle != null) {
+        if (paragraphStyle != null) {
             paragraphBlock.getSTYLEREFS().add(paragraphStyle);
         }
         composedBlock.getContent().add(paragraphBlock);
@@ -285,16 +291,18 @@ public class AbbyyToAltoConverter {
             } else {
                 StringType string = new StringType();
                 string.setCONTENT(word.getValue());
-                try {
-                    string.setWC(word.getWC());
-                } catch (Exception exc) {
-                    LOGGER.warn("Error while getting word confidence (WC) of " + word.getValue());
-                    string.setWC(0f);
-                }
-                try {
-                    string.setCC(word.getCC());
-                } catch (Exception exc) {
-                    LOGGER.warn("Error while getting character confidence (CC) of " + word.getValue());
+                if (enableConfidence) {
+                    try {
+                        string.setWC(word.getWC());
+                    } catch (Exception exc) {
+                        LOGGER.warn("Error while getting word confidence (WC) of " + word.getValue());
+                        string.setWC(0f);
+                    }
+                    try {
+                        string.setCC(word.getCC());
+                    } catch (Exception exc) {
+                        LOGGER.warn("Error while getting character confidence (CC) of " + word.getValue());
+                    }
                 }
                 string.getSTYLEREFS().add(style);
                 wordRect.applyOnString(string);
@@ -304,15 +312,26 @@ public class AbbyyToAltoConverter {
     }
 
     /**
-     * Gets the alto {@link #TextStyle} by the abbyy formatting.
+     * Gets the alto {@link TextStyle} by the abbyy formatting.
      * 
      * @param styles the alto styles
      * @param abbyyFormatting the abbyy formatting
      * @return
      */
     private TextStyle getTextStyle(Styles styles, FormattingType abbyyFormatting) {
-        String fontFamily = abbyyFormatting.getFf();
-        Float fontSize = abbyyFormatting.getFs();
+        String fontFamily = abbyyFormatting.getFf() != null ? abbyyFormatting.getFf() : getDefaultFontFamily();
+        if (fontFamily == null) {
+            throw new ConvertException("Unable to set font familiy of TextStyle cause the ff attribute of a formatting "
+                + " element is missing. There is no default font family configured. Please use setDefaultFontFamily(string) to "
+                + "fix this!");
+        }
+        Float fontSize = abbyyFormatting.getFs() != null ? abbyyFormatting.getFs() : getDefaultFontSize();
+        if (fontSize == null) {
+            throw new ConvertException("Unable to set font size of TextStyle cause the fs attribute of a formatting "
+                + "element is missing. There is no default font size configured. Please use setDefaultFontSize(float) to "
+                + "fix this!");
+        }
+
         List<String> fontStyles = new ArrayList<>();
         if (abbyyFormatting.isBold()) {
             fontStyles.add("bold");
@@ -327,7 +346,7 @@ public class AbbyyToAltoConverter {
     }
 
     /**
-     * Gets the {@link #TextStyle} for the given font family and size. Each alto document
+     * Gets the {@link TextStyle} for the given font family and size. Each alto document
      * have a pre defined list of fonts. If no text style is found, this method creates
      * an appropriate one.
      * 
@@ -372,7 +391,7 @@ public class AbbyyToAltoConverter {
      */
     private ParagraphStyle getParagraphStyle(Styles styles, ParagraphType paragraph) {
         ParagraphStyle paragraphStyle = createParagraphStyle(paragraph);
-        if(paragraphStyle == null) {
+        if (paragraphStyle == null) {
             return null;
         }
         List<ParagraphStyle> paragraphStyles = styles.getParagraphStyle();
@@ -707,7 +726,7 @@ public class AbbyyToAltoConverter {
      * has the same font. This method collects the font of each string per line and adds 
      * the most common font to the line.
      * 
-     * @param pageSpace
+     * @param pageSpace the page space to optimize
      */
     private void optimizeFonts(PageSpaceType pageSpace) {
         Stream<ComposedBlockType> composedBlockStream = pageSpace.getContent().stream()
@@ -755,5 +774,62 @@ public class AbbyyToAltoConverter {
             styles.get(i).setID("paragraph" + i);
         }
     }
-    
+
+    /**
+     * Returns the default font family or null if nothing is set explicit.
+     * 
+     * @return the default font size
+     */
+    public String getDefaultFontFamily() {
+        return defaultFontFamily;
+    }
+
+    /**
+     * Sets the default font family for an abbyy formatting element if
+     * there is no ff attribute specified.
+     * 
+     * @param defaultFontFamily the default font family to use
+     */
+    public void setDefaultFontFamily(String defaultFontFamily) {
+        this.defaultFontFamily = defaultFontFamily;
+    }
+
+    /**
+     * Returns the default font size or null if nothing is set explicit.
+     * 
+     * @return the default font size
+     */
+    public Float getDefaultFontSize() {
+        return defaultFontSize;
+    }
+
+    /**
+     * Sets the default font size for an abbyy formatting element if
+     * there is no fs attribute specified.
+     * 
+     * @param defaultFontSize the default font size to use
+     */
+    public void setDefaultFontSize(Float defaultFontSize) {
+        this.defaultFontSize = defaultFontSize;
+    }
+
+    /**
+     * Checks if the WC and CC attributes of the ALTO should be calculated and applied.
+     * By default the confidence attributes are enabled.
+     * 
+     * @return true if they are added to the ALTO document, false otherwise
+     */
+    public boolean isConfidenceEnabled() {
+        return this.enableConfidence;
+    }
+
+    /**
+     * If the confidence attributes WC and CC should be calculated and applied.
+     * 
+     * @param enableConfidence true = the WC and CC attributes are added, false = they are ignored
+     */
+    public void setEnableConfidence(boolean enableConfidence) {
+        this.enableConfidence = enableConfidence;
+    }
+
 }
