@@ -31,4 +31,14 @@ public class AbbyyToAltoConverterTest {
         System.out.println(JAXBUtil.marshalAltoToString(alto));
     }
 
+    @Test
+    public void convertOldGerman()   throws Exception {
+        InputStream inputStream = AbbyyToAltoConverter.class.getResourceAsStream("/OldGerman.xml");
+        Document document = JAXBUtil.unmarshalAbbyyDocument(inputStream);
+        Alto alto = new AbbyyToAltoConverter().convert(document);
+        assertNotNull("alto object should not be null", alto);
+        assertEquals("there should be 1 TextStyle element", 1, alto.getStyles().getTextStyle().size());
+        assertEquals("there should be exactly one page", 1, alto.getLayout().getPage().size());
+    }
+
 }

@@ -69,7 +69,7 @@ public class AbbyyToAltoConverter {
     /**
      * Converts the given abbyy document to an ALTO one.
      * 
-     * @param abbyyXML the abbyy document
+     * @param abbyyDocument the abbyy document
      * @return ALTO xml
      */
     public Alto convert(Document abbyyDocument) {
@@ -287,14 +287,14 @@ public class AbbyyToAltoConverter {
                 string.setCONTENT(word.getValue());
                 try {
                     string.setWC(word.getWC());
-                } catch (Exception exc) {
-                    LOGGER.warn("Error while getting word confidence (WC) of " + word.getValue());
-                    string.setWC(0f);
+                } catch (Exception ignore) {
+                    //LOGGER.warn("Error while getting word confidence (WC) of " + word.getValue());
+                    //string.setWC(0f);
                 }
                 try {
                     string.setCC(word.getCC());
-                } catch (Exception exc) {
-                    LOGGER.warn("Error while getting character confidence (CC) of " + word.getValue());
+                } catch (Exception ignore) {
+                    //LOGGER.warn("Error while getting character confidence (CC) of " + word.getValue());
                 }
                 string.getSTYLEREFS().add(style);
                 wordRect.applyOnString(string);
@@ -304,7 +304,7 @@ public class AbbyyToAltoConverter {
     }
 
     /**
-     * Gets the alto {@link #TextStyle} by the abbyy formatting.
+     * Gets the alto {@link TextStyle} by the abbyy formatting.
      * 
      * @param styles the alto styles
      * @param abbyyFormatting the abbyy formatting
@@ -312,7 +312,13 @@ public class AbbyyToAltoConverter {
      */
     private TextStyle getTextStyle(Styles styles, FormattingType abbyyFormatting) {
         String fontFamily = abbyyFormatting.getFf();
+        if( fontFamily == null) {
+            fontFamily = "Times";
+        }
         Float fontSize = abbyyFormatting.getFs();
+        if( fontSize == null) {
+            fontSize = 10.f;
+        }
         List<String> fontStyles = new ArrayList<>();
         if (abbyyFormatting.isBold()) {
             fontStyles.add("bold");
@@ -327,7 +333,7 @@ public class AbbyyToAltoConverter {
     }
 
     /**
-     * Gets the {@link #TextStyle} for the given font family and size. Each alto document
+     * Gets the {@link TextStyle} for the given font family and size. Each alto document
      * have a pre defined list of fonts. If no text style is found, this method creates
      * an appropriate one.
      * 
@@ -349,7 +355,9 @@ public class AbbyyToAltoConverter {
         if (textStyle == null) {
             textStyle = new TextStyle();
             textStyle.setFONTFAMILY(fontFamily);
-            textStyle.setFONTSIZE(fontSize);
+            if( fontSize != null) {
+                textStyle.setFONTSIZE(fontSize);
+            }
             if (!fontStyles.isEmpty()) {
                 textStyle.setFONTSTYLE(fontStyles);
             }
