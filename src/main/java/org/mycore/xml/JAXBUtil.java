@@ -17,28 +17,25 @@
 */
 package org.mycore.xml;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.mycore.xml.abbyy.v10.Document;
+import org.mycore.xml.alto.v2.Alto;
+
+import javax.xml.bind.*;
+import javax.xml.transform.stream.StreamSource;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringWriter;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
-
-import org.mycore.xml.abbyy.v10.Document;
-import org.mycore.xml.alto.v2.Alto;
-
 /**
  * Util class for jaxb marshalling.
- * 
+ *
  * @author Matthias Eichner
  */
 public abstract class JAXBUtil {
 
-    private static JAXBContext ABBYY_CONTEXT, ALTO_CONTEXT;
+    private static Logger LOGGER = LogManager.getLogger();
 
     private static Unmarshaller ABBYY_UNMARSHALLER;
 
@@ -46,21 +43,21 @@ public abstract class JAXBUtil {
 
     static {
         try {
-            ABBYY_CONTEXT = JAXBContext.newInstance(Document.class);
-            ALTO_CONTEXT = JAXBContext.newInstance(Alto.class);
+            JAXBContext abbyyContext = JAXBContext.newInstance(Document.class);
+            JAXBContext altoContext = JAXBContext.newInstance(Alto.class);
 
-            ABBYY_UNMARSHALLER = ABBYY_CONTEXT.createUnmarshaller();
-            ALTO_MARSHALLER = ALTO_CONTEXT.createMarshaller();
+            ABBYY_UNMARSHALLER = abbyyContext.createUnmarshaller();
+            ALTO_MARSHALLER = altoContext.createMarshaller();
             ALTO_MARSHALLER.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
             ALTO_MARSHALLER.setProperty(Marshaller.JAXB_ENCODING, "UTF-8");
         } catch (Exception exc) {
-            exc.printStackTrace();
+            LOGGER.error("error while initializing jaxb", exc);
         }
     }
 
     public static synchronized Document unmarshalAbbyyDocument(InputStream inputStream) throws JAXBException {
         JAXBElement<Document> jaxbDocument = ABBYY_UNMARSHALLER.unmarshal(new StreamSource(inputStream),
-            Document.class);
+                Document.class);
         return jaxbDocument.getValue();
     }
 

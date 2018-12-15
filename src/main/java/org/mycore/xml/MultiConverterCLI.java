@@ -17,6 +17,13 @@
 */
 package org.mycore.xml;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.mycore.xml.abbyy.v10.Document;
+import org.mycore.xml.alto.v2.Alto;
+import utils.stream.Unthrow;
+
+import javax.xml.bind.JAXBException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -26,28 +33,19 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.stream.Stream;
 
-import javax.xml.bind.JAXBException;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.mycore.xml.abbyy.v10.Document;
-import org.mycore.xml.alto.v2.Alto;
-
-import utils.stream.Unthrow;
-
 /**
  * A very simple CLI to convert single abbyy files or whole directories.
- * 
+ * <p>
  * <ul>
- *   <li>convert {source abbyy file} {target alto diretory}</li>
- *   <li>directory {source abbyy directory} {target alto diretory}</li>
+ * <li>convert {source abbyy file} {target alto diretory}</li>
+ * <li>directory {source abbyy directory} {target alto diretory}</li>
  * </ul>
- * 
+ *
  * @author Matthias Eichner
  */
 public class MultiConverterCLI {
 
-    private static Logger LOGGER = LogManager.getLogger(MultiConverterCLI.class);
+    private static Logger LOGGER = LogManager.getLogger();
 
     public static void main(String[] args) throws Exception {
         if (args.length < 2) {
@@ -74,20 +72,19 @@ public class MultiConverterCLI {
     }
 
     /**
-     * Runs through all sub directories of sourceDirectoryPath and tries to find 
+     * Runs through all sub directories of sourceDirectoryPath and tries to find
      * matching folders. When a folders matches (the name is equal the matching
      * folder variable), all *.xml files of this folder will be converted
      * and stored under the new folder.
-     * 
+     *
      * @param sourceDirectoryPath path where to start converting
-     * @param matchingFolder folder name where the *.xml files lies within
-     * @param newFolder name of the folder which will be created for converted *.xml
-     * The folder is always a sibling of the matching folder
-     * 
+     * @param matchingFolder      folder name where the *.xml files lies within
+     * @param newFolder           name of the folder which will be created for converted *.xml
+     *                            The folder is always a sibling of the matching folder
      * @throws IOException some storing went wrong
      */
     private static void convertMatching(Path sourceDirectoryPath, String matchingFolder, String newFolder)
-        throws IOException {
+            throws IOException {
         try (Stream<Path> stream = Files.walk(sourceDirectoryPath)) {
             stream.filter(p -> {
                 return Files.isDirectory(p) && Files.exists(p.resolve(matchingFolder));
@@ -102,7 +99,7 @@ public class MultiConverterCLI {
     /**
      * Converts a whole directory of abbyy xml files and stores them under the given
      * target directory path. The names of the alto files are the same as the abbyy ones.
-     * 
+     *
      * @param sourceDirectoryPath a directory path containing abbyy xml files
      * @param targetDirectoryPath where the alto files are stored
      * @throws IOException some storing went wrong
@@ -120,10 +117,10 @@ public class MultiConverterCLI {
     /**
      * Converts a single abbyy file to an alto one and stores it under the target directoy path.
      * The name of the alto file is the same as the abbyy one.
-     * 
-     * @param abbyyFilePath path to the abbyy xml file
+     *
+     * @param abbyyFilePath       path to the abbyy xml file
      * @param targetDirectoryPath path to the target directory
-     * @throws IOException some storing went wrong
+     * @throws IOException   some storing went wrong
      * @throws JAXBException the converting went wrong
      */
     private static void convert(Path abbyyFilePath, Path targetDirectoryPath) throws IOException, JAXBException {
