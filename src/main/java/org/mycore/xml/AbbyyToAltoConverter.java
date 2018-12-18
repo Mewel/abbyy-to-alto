@@ -124,6 +124,8 @@ public class AbbyyToAltoConverter {
                 blockRect.applyOnGraphicalElement(graphicalSeparator);
                 graphicalSeparator.setID("GraphicalElement_" + graphicalElementCount.incrementAndGet());
                 pageSpace.getContent().add(graphicalSeparator);
+            } else if (blockType.equals("Barcode")) {
+                LOGGER.warn("Unsupported block type '" + blockType + "' at " + blockRect);
             } else {
                 throw new ConvertException("Invalid block type " + blockType + " at " + blockRect);
             }
