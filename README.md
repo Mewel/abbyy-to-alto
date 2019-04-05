@@ -42,5 +42,5 @@ abbyy-to-alto contains a very simple command line interface
 * checkout the project with git
 * do a "mvn clean install" in the checked out directory
 * use the cli
-  * java -jar target/abbyy-to-alto-0.1-SNAPSHOT-jar-with-dependencies.jar convert {source abbyy xml} {target directory}
-  * java -jar target/abbyy-to-alto-0.1-SNAPSHOT-jar-with-dependencies.jar directory {source directory} {target directory}
+  * java -jar target/abbyy-to-alto-0.1-SNAPSHOT.jar convert {source abbyy xml} {target directory}
+  * java -jar target/abbyy-to-alto-0.1-SNAPSHOT.jar directory {source directory} {target directory}
