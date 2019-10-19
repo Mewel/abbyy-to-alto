@@ -21,6 +21,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.mycore.xml.abbyy.v10.Document;
 import org.mycore.xml.alto.v2.Alto;
+import org.mycore.xml.alto.v4.AltoType;
+import org.mycore.xml.alto.v4.ObjectFactory;
 
 import javax.xml.bind.*;
 import javax.xml.transform.stream.StreamSource;
@@ -39,17 +41,23 @@ public abstract class JAXBUtil {
 
     private static Unmarshaller ABBYY_UNMARSHALLER;
 
-    private static Marshaller ALTO_MARSHALLER;
+    private static Marshaller ALTO_V2_MARSHALLER;
+    private static Marshaller ALTO_V4_MARSHALLER;
 
     static {
         try {
             JAXBContext abbyyContext = JAXBContext.newInstance(Document.class);
-            JAXBContext altoContext = JAXBContext.newInstance(Alto.class);
-
             ABBYY_UNMARSHALLER = abbyyContext.createUnmarshaller();
-            ALTO_MARSHALLER = altoContext.createMarshaller();
-            ALTO_MARSHALLER.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-            ALTO_MARSHALLER.setProperty(Marshaller.JAXB_ENCODING, "UTF-8");
+
+            JAXBContext altoV2Context = JAXBContext.newInstance(Alto.class);
+            ALTO_V2_MARSHALLER = altoV2Context.createMarshaller();
+            ALTO_V2_MARSHALLER.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+            ALTO_V2_MARSHALLER.setProperty(Marshaller.JAXB_ENCODING, "UTF-8");
+
+            JAXBContext altoV4Context = JAXBContext.newInstance(AltoType.class);
+            ALTO_V4_MARSHALLER = altoV4Context.createMarshaller();
+            ALTO_V4_MARSHALLER.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+            ALTO_V4_MARSHALLER.setProperty(Marshaller.JAXB_ENCODING, "UTF-8");
         } catch (Exception exc) {
             LOGGER.error("error while initializing jaxb", exc);
         }
@@ -62,12 +70,22 @@ public abstract class JAXBUtil {
     }
 
     public static synchronized void marshalAlto(Alto alto, OutputStream out) throws JAXBException {
-        ALTO_MARSHALLER.marshal(alto, out);
+        ALTO_V2_MARSHALLER.marshal(alto, out);
     }
 
     public static synchronized String marshalAltoToString(Alto alto) throws JAXBException {
         StringWriter writer = new StringWriter();
-        ALTO_MARSHALLER.marshal(alto, writer);
+        ALTO_V2_MARSHALLER.marshal(alto, writer);
+        return writer.toString();
+    }
+
+    public static synchronized void marshalAltoV4(AltoType alto, OutputStream out) throws JAXBException {
+        ALTO_V4_MARSHALLER.marshal(new ObjectFactory().createAlto(alto), out);
+    }
+
+    public static synchronized String marshalAltoV4ToString(AltoType alto) throws JAXBException {
+        StringWriter writer = new StringWriter();
+        ALTO_V4_MARSHALLER.marshal(new ObjectFactory().createAlto(alto), writer);
         return writer.toString();
     }
 
