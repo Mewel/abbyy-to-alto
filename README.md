@@ -3,7 +3,7 @@
 abbyy-to-alto is a tiny Java library to convert <a href="https://abbyy.technology/en:features:ocr:xml">abbyy.xml</a> 
 to <a href="https://www.loc.gov/standards/alto/">alto.xml</a>.
 It supports <a href="http://www.abbyy.com/FineReader_xml/FineReader10-schema-v1.xml">abbyy v10</a>
-and <a href="http://www.loc.gov/standards/alto/v2/alto-2-0.xsd">alto v2</a>.
+and <a href="https://www.loc.gov/standards/alto/v2/alto-2-0.xsd">alto v2</a>/<a href="https://www.loc.gov/standards/alto/v4/alto-4-1.xsd">alto v4.1</a>.
 
 # include with maven
 ```xml
