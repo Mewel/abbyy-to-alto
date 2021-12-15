@@ -23,7 +23,7 @@
   <parent>
     <artifactId>mycore-parent</artifactId>
     <groupId>org.mycore</groupId>
-    <version>29-SNAPSHOT</version>
+    <version>47</version>
   </parent>
 
   <description>
@@ -34,14 +34,14 @@
   <repositories>
     <repository>
       <id>MyCoRe HQ</id>
-      <url>http://artifactory.mycore.de/mycore-releases</url>
+      <url>https://artifactory.mycore.de/mycore-releases</url>
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
     </repository>
     <repository>
       <id>MyCoRe HQ Snapshots</id>
-      <url>http://artifactory.mycore.de/mycore-snapshots</url>
+      <url>https://artifactory.mycore.de/mycore-snapshots</url>
       <releases>
         <enabled>false</enabled>
       </releases>
@@ -55,7 +55,7 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.13.1</version>
+      <version>4.13.2</version>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
