@@ -22,6 +22,7 @@ import org.apache.logging.log4j.Logger;
 import org.mycore.xml.abbyy.v10.*;
 import org.mycore.xml.alto.v4.*;
 import org.mycore.xml.alto.v4.ParagraphStyleType;
+import org.mycore.xml.alto.v4.DescriptionType.Processing;
 import org.mycore.xml.alto.v4.BlockType;
 
 import javax.xml.bind.JAXBElement;
@@ -92,6 +93,17 @@ public class AbbyyToAltoV4Converter {
         IdGenerator idGenerator = new IdGenerator();
         AltoType alto = buildAlto();
         PageType page = buildAltoPage(alto);
+        
+
+        // Build Processing metadata from ABBYY producer
+        ProcessingSoftwareType processingSoftware = new ProcessingSoftwareType();
+        processingSoftware.setSoftwareName(abbyyDocument.getProducer());
+
+        Processing processingStep = new Processing();
+        processingStep.setProcessingSoftware(processingSoftware);
+      
+        alto.getDescription().getProcessing().add(processingStep);
+
 
         abbyyDocument.getPage().stream().findFirst().ifPresent(abbyyPage -> {
             page.setWIDTH(abbyyPage.getWidth().floatValue());
