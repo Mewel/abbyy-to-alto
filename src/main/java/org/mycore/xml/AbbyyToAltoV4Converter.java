@@ -96,13 +96,16 @@ public class AbbyyToAltoV4Converter {
         
 
         // Build Processing metadata from ABBYY producer
-        ProcessingSoftwareType processingSoftware = new ProcessingSoftwareType();
-        processingSoftware.setSoftwareName(abbyyDocument.getProducer());
+        String producer = abbyyDocument.getProducer();
+        if (producer != null) {
+            ProcessingSoftwareType processingSoftware = new ProcessingSoftwareType();
+            processingSoftware.setSoftwareName(producer);
 
-        Processing processingStep = new Processing();
-        processingStep.setProcessingSoftware(processingSoftware);
+            Processing processingStep = new Processing();
+            processingStep.setProcessingSoftware(processingSoftware);
       
-        alto.getDescription().getProcessing().add(processingStep);
+            alto.getDescription().getProcessing().add(processingStep);
+        }
 
 
         abbyyDocument.getPage().stream().findFirst().ifPresent(abbyyPage -> {
