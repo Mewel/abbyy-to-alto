@@ -72,11 +72,11 @@ public class AbbyyToAltoConverter {
         // Build Processing metadata from ABBYY producer
         String producer = abbyyDocument.getProducer();
         alto.getDescription().getOCRProcessing().add(
-            buildProcessing(producer, null)
+            buildProcessing("Processing_0", producer, null)
         );
         // Add Processing metadata for the conversion itself
         alto.getDescription().getOCRProcessing().add(
-            buildProcessing("abbyy-to-alto", buildIsoDate(new Date()))
+            buildProcessing("Processing_1", "abbyy-to-alto", buildIsoDate(new Date()))
         );
 
         abbyyDocument.getPage().stream().findFirst().ifPresent(abbyyPage -> {
@@ -177,7 +177,7 @@ public class AbbyyToAltoConverter {
         return page;
     }
 
-    private OCRProcessing buildProcessing(String softwareName, String dateTime) {
+    private OCRProcessing buildProcessing(String ID, String softwareName, String dateTime) {
 
         ProcessingStepType processingStep = new ProcessingStepType();
 
@@ -193,6 +193,7 @@ public class AbbyyToAltoConverter {
         }
 
         OCRProcessing processing = new OCRProcessing();
+        processing.setID(ID);
         processing.setOcrProcessingStep(processingStep);
         return processing;
     }

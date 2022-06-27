@@ -95,16 +95,16 @@ public class AbbyyToAltoV4Converter {
         IdGenerator idGenerator = new IdGenerator();
         AltoType alto = buildAlto();
         PageType page = buildAltoPage(alto);
-        
+
 
         // Build Processing metadata from ABBYY producer
         String producer = abbyyDocument.getProducer();
         alto.getDescription().getProcessing().add(
-            buildProcessing(producer, null)
+            buildProcessing("Processing_0", producer, null)
         );
         // Add Processing metadata for the conversion itself
         alto.getDescription().getProcessing().add(
-            buildProcessing("abbyy-to-alto", buildIsoDate(new Date()))
+            buildProcessing("Processing_1", "abbyy-to-alto", buildIsoDate(new Date()))
         );
 
 
@@ -200,7 +200,7 @@ public class AbbyyToAltoV4Converter {
         return page;
     }
 
-    private Processing buildProcessing(String producer, String dateTime) {
+    private Processing buildProcessing(String ID, String producer, String dateTime) {
 
         Processing processingStep = new Processing();
 
@@ -214,6 +214,7 @@ public class AbbyyToAltoV4Converter {
             processingStep.setProcessingDateTime(dateTime);
         }
 
+        processingStep.setID(ID);
         return processingStep;
     }
 
