@@ -200,13 +200,13 @@ public class AbbyyToAltoV4Converter {
         return page;
     }
 
-    private Processing buildProcessing(String ID, String producer, String dateTime) {
+    private Processing buildProcessing(String ID, String softwareName, String dateTime) {
 
         Processing processingStep = new Processing();
 
-        if (producer != null) {
+        if (softwareName != null) {
             ProcessingSoftwareType processingSoftware = new ProcessingSoftwareType();
-            processingSoftware.setSoftwareName(producer);
+            processingSoftware.setSoftwareName(softwareName);
             processingStep.setProcessingSoftware(processingSoftware);
         }
 
