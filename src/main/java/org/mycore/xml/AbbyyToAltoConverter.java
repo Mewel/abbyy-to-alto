@@ -177,13 +177,13 @@ public class AbbyyToAltoConverter {
         return page;
     }
 
-    private OCRProcessing buildProcessing(String producer, String dateTime) {
+    private OCRProcessing buildProcessing(String softwareName, String dateTime) {
 
         ProcessingStepType processingStep = new ProcessingStepType();
 
-        if (producer != null) {
+        if (softwareName != null) {
             ProcessingSoftwareType processingSoftware = new ProcessingSoftwareType();
-            processingSoftware.setSoftwareName(producer);
+            processingSoftware.setSoftwareName(softwareName);
 
             processingStep.setProcessingSoftware(processingSoftware);
         }
