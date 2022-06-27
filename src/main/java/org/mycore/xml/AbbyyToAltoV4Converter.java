@@ -27,6 +27,8 @@ import org.mycore.xml.alto.v4.BlockType;
 
 import javax.xml.bind.JAXBElement;
 import java.math.BigInteger;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -97,12 +99,13 @@ public class AbbyyToAltoV4Converter {
 
         // Build Processing metadata from ABBYY producer
         String producer = abbyyDocument.getProducer();
-        if (producer != null) {
-            alto.getDescription().getProcessing().add(
-                buildProcessing(producer)
-            );
-        }
+        alto.getDescription().getProcessing().add(
+            buildProcessing(producer, null)
+        );
         // Add Processing metadata for the conversion itself
+        alto.getDescription().getProcessing().add(
+            buildProcessing("abbyy-to-alto", buildIsoDate(new Date()))
+        );
 
 
         abbyyDocument.getPage().stream().findFirst().ifPresent(abbyyPage -> {
@@ -197,14 +200,28 @@ public class AbbyyToAltoV4Converter {
         return page;
     }
 
-    private Processing buildProcessing(String producer) {
-        ProcessingSoftwareType processingSoftware = new ProcessingSoftwareType();
-        processingSoftware.setSoftwareName(producer);
+    private Processing buildProcessing(String producer, String dateTime) {
 
         Processing processingStep = new Processing();
-        processingStep.setProcessingSoftware(processingSoftware);
+
+        if (producer != null) {
+            ProcessingSoftwareType processingSoftware = new ProcessingSoftwareType();
+            processingSoftware.setSoftwareName(producer);
+            processingStep.setProcessingSoftware(processingSoftware);
+        }
+
+        if (dateTime != null) {
+            processingStep.setProcessingDateTime(dateTime);
+        }
 
         return processingStep;
+    }
+
+    private String buildIsoDate(Date date) {
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+        TimeZone tz = TimeZone.getTimeZone("UTC");
+        df.setTimeZone(tz);
+        return df.format(date);
     }
 
     /**
