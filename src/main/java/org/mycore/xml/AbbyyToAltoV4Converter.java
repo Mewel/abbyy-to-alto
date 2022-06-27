@@ -22,10 +22,13 @@ import org.apache.logging.log4j.Logger;
 import org.mycore.xml.abbyy.v10.*;
 import org.mycore.xml.alto.v4.*;
 import org.mycore.xml.alto.v4.ParagraphStyleType;
+import org.mycore.xml.alto.v4.DescriptionType.Processing;
 import org.mycore.xml.alto.v4.BlockType;
 
 import javax.xml.bind.JAXBElement;
 import java.math.BigInteger;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -92,6 +95,18 @@ public class AbbyyToAltoV4Converter {
         IdGenerator idGenerator = new IdGenerator();
         AltoType alto = buildAlto();
         PageType page = buildAltoPage(alto);
+
+
+        // Build Processing metadata from ABBYY producer
+        String producer = abbyyDocument.getProducer();
+        alto.getDescription().getProcessing().add(
+            buildProcessing("Processing_0", producer, null)
+        );
+        // Add Processing metadata for the conversion itself
+        alto.getDescription().getProcessing().add(
+            buildProcessing("Processing_1", "abbyy-to-alto", buildIsoDate(new Date()))
+        );
+
 
         abbyyDocument.getPage().stream().findFirst().ifPresent(abbyyPage -> {
             page.setWIDTH(abbyyPage.getWidth().floatValue());
@@ -183,6 +198,31 @@ public class AbbyyToAltoV4Converter {
         layout.getPage().add(page);
         page.setID("Page");
         return page;
+    }
+
+    private Processing buildProcessing(String ID, String softwareName, String dateTime) {
+
+        Processing processingStep = new Processing();
+
+        if (softwareName != null) {
+            ProcessingSoftwareType processingSoftware = new ProcessingSoftwareType();
+            processingSoftware.setSoftwareName(softwareName);
+            processingStep.setProcessingSoftware(processingSoftware);
+        }
+
+        if (dateTime != null) {
+            processingStep.setProcessingDateTime(dateTime);
+        }
+
+        processingStep.setID(ID);
+        return processingStep;
+    }
+
+    private String buildIsoDate(Date date) {
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+        TimeZone tz = TimeZone.getTimeZone("UTC");
+        df.setTimeZone(tz);
+        return df.format(date);
     }
 
     /**

@@ -26,6 +26,7 @@ import org.mycore.xml.alto.v2.Alto.Description;
 import org.mycore.xml.alto.v2.Alto.Layout;
 import org.mycore.xml.alto.v2.Alto.Layout.Page;
 import org.mycore.xml.alto.v2.Alto.Styles;
+import org.mycore.xml.alto.v2.Alto.Description.OCRProcessing;
 import org.mycore.xml.alto.v2.Alto.Styles.ParagraphStyle;
 import org.mycore.xml.alto.v2.Alto.Styles.TextStyle;
 import org.mycore.xml.alto.v2.TextBlockType.TextLine;
@@ -33,6 +34,8 @@ import org.mycore.xml.alto.v2.TextBlockType.TextLine.SP;
 
 import javax.xml.bind.JAXBElement;
 import java.math.BigInteger;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,6 +68,16 @@ public class AbbyyToAltoConverter {
     public Alto convert(Document abbyyDocument) {
         Alto alto = buildAlto();
         Page page = buildAltoPage(alto);
+
+        // Build Processing metadata from ABBYY producer
+        String producer = abbyyDocument.getProducer();
+        alto.getDescription().getOCRProcessing().add(
+            buildProcessing("Processing_0", producer, null)
+        );
+        // Add Processing metadata for the conversion itself
+        alto.getDescription().getOCRProcessing().add(
+            buildProcessing("Processing_1", "abbyy-to-alto", buildIsoDate(new Date()))
+        );
 
         abbyyDocument.getPage().stream().findFirst().ifPresent(abbyyPage -> {
             page.setWIDTH(abbyyPage.getWidth().intValue());
@@ -162,6 +175,34 @@ public class AbbyyToAltoConverter {
         layout.getPage().add(page);
         page.setID("Page");
         return page;
+    }
+
+    private OCRProcessing buildProcessing(String ID, String softwareName, String dateTime) {
+
+        ProcessingStepType processingStep = new ProcessingStepType();
+
+        if (softwareName != null) {
+            ProcessingSoftwareType processingSoftware = new ProcessingSoftwareType();
+            processingSoftware.setSoftwareName(softwareName);
+
+            processingStep.setProcessingSoftware(processingSoftware);
+        }
+
+        if (dateTime != null) {
+            processingStep.setProcessingDateTime(dateTime);
+        }
+
+        OCRProcessing processing = new OCRProcessing();
+        processing.setID(ID);
+        processing.setOcrProcessingStep(processingStep);
+        return processing;
+    }
+
+    private String buildIsoDate(Date date) {
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+        TimeZone tz = TimeZone.getTimeZone("UTC");
+        df.setTimeZone(tz);
+        return df.format(date);
     }
 
     /**
