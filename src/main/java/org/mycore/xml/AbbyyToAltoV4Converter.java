@@ -98,14 +98,11 @@ public class AbbyyToAltoV4Converter {
         // Build Processing metadata from ABBYY producer
         String producer = abbyyDocument.getProducer();
         if (producer != null) {
-            ProcessingSoftwareType processingSoftware = new ProcessingSoftwareType();
-            processingSoftware.setSoftwareName(producer);
-
-            Processing processingStep = new Processing();
-            processingStep.setProcessingSoftware(processingSoftware);
-      
-            alto.getDescription().getProcessing().add(processingStep);
+            alto.getDescription().getProcessing().add(
+                buildProcessing(producer)
+            );
         }
+        // Add Processing metadata for the conversion itself
 
 
         abbyyDocument.getPage().stream().findFirst().ifPresent(abbyyPage -> {
@@ -198,6 +195,16 @@ public class AbbyyToAltoV4Converter {
         layout.getPage().add(page);
         page.setID("Page");
         return page;
+    }
+
+    private Processing buildProcessing(String producer) {
+        ProcessingSoftwareType processingSoftware = new ProcessingSoftwareType();
+        processingSoftware.setSoftwareName(producer);
+
+        Processing processingStep = new Processing();
+        processingStep.setProcessingSoftware(processingSoftware);
+
+        return processingStep;
     }
 
     /**
